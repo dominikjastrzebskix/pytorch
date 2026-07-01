@@ -1334,21 +1334,24 @@ struct IValuePacker<at::TensorOptions> {
 template <>
 struct IValuePacker<TypeAndSize> {
   static at::IValue pack(const TypeAndSize& t) {
-    auto tuple = std::make_tuple(t.sym_sizes, pack_TensorOptions(t.options));
+    auto tuple =
+        std::make_tuple(t.sym_sizes, pack_TensorOptions(t.options), t.nested_tensor);
     return tuple;
   }
   static TypeAndSize unpack(const at::IValue& t) {
     auto tuple =
-        t.to<std::tuple<std::vector<at::SymInt>, packed_tensoroptions_t>>();
+        t.to<std::tuple<std::vector<at::SymInt>, packed_tensoroptions_t, at::Tensor>>();
     TypeAndSize result;
     result.sym_sizes = std::get<0>(tuple);
     result.options = unpack_TensorOptions(std::get<1>(tuple));
+    result.nested_tensor = std::get<2>(tuple);
     return result;
   }
   static at::TypePtr packed_type() {
     return at::TupleType::create(
         {IValuePacker<std::vector<at::SymInt>>::packed_type(),
-         IValuePacker<at::TensorOptions>::packed_type()});
+         IValuePacker<at::TensorOptions>::packed_type(),
+         at::TensorType::get()});
   }
 };
 

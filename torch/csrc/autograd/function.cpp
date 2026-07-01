@@ -14,6 +14,7 @@
 #include <ATen/Functions.h>
 #else
 #include <ATen/ops/zeros.h>
+#include <ATen/ops/zeros_like.h>
 #endif
 
 namespace torch::autograd {
@@ -131,6 +132,9 @@ Node::~Node() {
 }
 
 at::Tensor TypeAndSize::zeros() {
+  if (nested_tensor.defined()) {
+    return at::zeros_like(nested_tensor);
+  }
   return at::zeros_symint(sym_sizes, options);
 }
 

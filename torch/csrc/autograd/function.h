@@ -78,12 +78,15 @@ struct TypeAndSize {
   TypeAndSize() = default;
   /* implicit */
   TypeAndSize(const at::Tensor& t)
-      : sym_sizes(t.sym_sizes().vec()), options(t.options()) {}
+      : sym_sizes(t.sym_sizes().vec()),
+        options(t.options()),
+        nested_tensor(t.is_nested() ? t : at::Tensor()) {}
 
   at::Tensor zeros();
 
   std::vector<c10::SymInt> sym_sizes;
   at::TensorOptions options;
+  at::Tensor nested_tensor;
 };
 
 } // namespace torch::autograd

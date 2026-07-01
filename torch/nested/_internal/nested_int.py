@@ -84,6 +84,57 @@ class NestedIntNode:
             raise ValueError(f"unsupported: {type(other)}")
         return NestedIntNode(self.t_id, self.coeff * other)
 
+    def add(self, other: Any) -> "NestedIntNode":
+        if other.is_constant() and other.constant_int() == 0:
+            return self
+        raise ValueError("add not supported by NestedIntNode")
+
+    def sub(self, other: Any) -> "NestedIntNode":
+        if other.is_constant() and other.constant_int() == 0:
+            return self
+        raise ValueError("sub not supported by NestedIntNode")
+
+    def truediv(self, other: Any) -> "NestedIntNode":
+        raise ValueError("truediv not supported by NestedIntNode")
+
+    def pow(self, other: Any) -> "NestedIntNode":
+        raise ValueError("pow not supported by NestedIntNode")
+
+    def floordiv(self, other: Any) -> "NestedIntNode":
+        raise ValueError("floordiv not supported by NestedIntNode")
+
+    def mod(self, other: Any) -> "NestedIntNode":
+        raise ValueError("mod not supported by NestedIntNode")
+
+    def sym_min(self, other: Any) -> Any:
+        raise ValueError("sym_min not supported by NestedIntNode")
+
+    def sym_max(self, other: Any) -> Any:
+        if other.is_constant() and other.constant_int() <= 2:
+            return self
+        raise ValueError("sym_max not supported by NestedIntNode")
+
+    def sym_and(self, other: Any) -> Any:
+        raise ValueError("sym_and not supported by NestedIntNode")
+
+    def sym_or(self, other: Any) -> Any:
+        raise ValueError("sym_or not supported by NestedIntNode")
+
+    def sym_not(self) -> Any:
+        raise ValueError("sym_not is not supported by NestedIntNode")
+
+    def ceil(self) -> Any:
+        raise ValueError("ceil is not supported by NestedIntNode")
+
+    def floor(self) -> Any:
+        raise ValueError("floor is not supported by NestedIntNode")
+
+    def neg(self) -> Any:
+        raise ValueError("neg is not supported by NestedIntNode")
+
+    def sym_float(self) -> Any:
+        raise ValueError("sym_float is not supported by NestedIntNode")
+
     def eq(self, other: Any) -> Any:
         return torch._C._get_constant_bool_symnode(_eq(self, other))
 
