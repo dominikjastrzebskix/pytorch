@@ -425,9 +425,13 @@ def meta_fft_r2c(self, dim, normalization, onesided):
     # bfloat16 FFT always produces complex64 output (not bcomplex32):
     # - On CUDA: cuFFT CUDA_C_16BF is upcast to ComplexFloat (see SpectralOps.cpp line 376-379)
     # - On ROCm/XPU: bfloat16 is promoted to float32 before FFT, yielding complex64
+    # float16 FFT also produces complex64 output (not complex32) on XPU:
+    # - On XPU: float16 is promoted to float32 before FFT, yielding complex64
     # See promote_type_fft() and _fft_r2c_cufft() in aten/src/ATen/native/SpectralOps.cpp
     output_dtype = self.dtype
     if output_dtype == torch.bfloat16 and (device_hint(self) in ("cuda", "xpu")):
+        output_dtype = torch.float32
+    elif output_dtype == torch.float16 and device_hint(self) == "xpu":
         output_dtype = torch.float32
 
     if device_hint(self) == "cuda" or device_hint(self) == "xpu":
