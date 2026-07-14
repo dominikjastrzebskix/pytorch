@@ -228,6 +228,10 @@ class TestFFT(TestCase):
                     # Since type promotion currently doesn't work with [b]complex32
                     # manually promote `x` to complex32
                     x = x.to(torch.complex32)
+
+                if (x.dtype is torch.float16 and torch.device(device).type == 'xpu'):
+                    # XPU promotes float16 to float32 for FFT, so we need to promote `x` to float32
+                    x = x.to(torch.float32)
                 # For real input, ifft(fft(x)) will convert to complex
                 self.assertEqual(x, y, exact_dtype=(
                     forward != torch.fft.fft or x.is_complex()))
@@ -281,6 +285,7 @@ class TestFFT(TestCase):
             torch.int8: torch.complex64,
             torch.half: torch.complex32,
             torch.float: torch.complex64,
+            torch.float16: torch.complex64,
             torch.double: torch.complex128,
             torch.complex32: torch.complex32,
             torch.complex64: torch.complex64,
@@ -293,6 +298,7 @@ class TestFFT(TestCase):
             torch.int8: torch.float,
             torch.half: torch.half,
             torch.float: torch.float,
+            torch.float16: torch.float,
             torch.double: torch.double,
             torch.complex32: torch.half,
             torch.complex64: torch.float,
@@ -318,6 +324,8 @@ class TestFFT(TestCase):
                 torch.bfloat16: torch.complex64,
             }
             device_type = torch.device(device).type
+            if dtype is torch.float16 and device_type == 'xpu':
+                PROMOTION_MAP_R2C[dtype] = torch.complex64  # XPU promotes float16 to complex64 for FFT
             if dtype is torch.bfloat16 and device_type not in ('cuda', 'xpu'):
                 pass  # bfloat16 FFT only supported on CUDA/XPU, skip on CPU
             elif dtype in PROMOTION_MAP_R2C:
@@ -461,6 +469,10 @@ class TestFFT(TestCase):
                 kwargs = {'s': s, 'dim': dim, 'norm': norm}
                 y = backward(forward(x, **kwargs), **kwargs)
                 # For real input, ifftn(fftn(x)) will convert to complex
+                if x.dtype is torch.float16 and torch.device(device).type == 'xpu':
+                    # XPU promotes float16 to float32 for FFT, so we need to promote `x` to float32
+                    x = x.to(torch.float32)
+
                 if x.dtype is torch.half and y.dtype is torch.chalf:
                     # Since type promotion currently doesn't work with complex32
                     # manually promote `x` to complex32
@@ -500,6 +512,11 @@ class TestFFT(TestCase):
             torch.float: torch.cfloat,
             torch.double: torch.cdouble,
         }
+
+        if (dtype is torch.float16 and torch.device(device).type == 'xpu'):
+            # XPU promotes float16 to complex64 for FFT
+            RESULT_TYPE[torch.float16] = torch.complex64
+                    
 
         for op in [
             torch.fft.fftn,
@@ -552,6 +569,10 @@ class TestFFT(TestCase):
 
             s = [shape[dim] for dim in actual_dims]
             actual = torch.fft.hfftn(input, s=s, dim=dim, norm="ortho")
+
+            if (dtype is torch.float16 and torch.device(device).type == 'xpu'):
+                # XPU promotes float16 to float32 for FFT, so we need to promote `expect` to float32
+                expect = expect.to(torch.float32)
 
             self.assertEqual(expect, actual)
 
@@ -856,7 +877,7 @@ class TestFFT(TestCase):
         self._test_fft_ifft_rfft_irfft(device, dtype)
 
     @deviceCountAtLeast(1)
-    @onlyCUDA
+    @onlyOn("cuda")
     @dtypes(torch.double)
     def test_cufft_plan_cache(self, devices, dtype):
         @contextmanager
