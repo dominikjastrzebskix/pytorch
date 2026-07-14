@@ -516,7 +516,7 @@ class TestFFT(TestCase):
         if (dtype is torch.float16 and torch.device(device).type == 'xpu'):
             # XPU promotes float16 to complex64 for FFT
             RESULT_TYPE[torch.float16] = torch.complex64
-                    
+
 
         for op in [
             torch.fft.fftn,
