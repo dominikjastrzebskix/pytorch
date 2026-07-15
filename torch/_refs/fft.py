@@ -82,7 +82,7 @@ def _promote_type_fft(
         if dtype == torch.bfloat16:
             dtype = torch.float32
         # float16 on XPU also produces complex64 (not complex32), so promote to float32
-        if dtype == torch.float16 and device.type in ("xpu"):
+        if dtype == torch.float16 and device.type in ("xpu",):
             dtype = torch.float32
     torch._check(dtype in allowed_types, lambda: f"Unsupported dtype {dtype}")
 

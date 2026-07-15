@@ -283,9 +283,8 @@ class TestFFT(TestCase):
 
         PROMOTION_MAP = {
             torch.int8: torch.complex64,
-            torch.half: torch.complex32,
+            torch.half: torch.complex64,
             torch.float: torch.complex64,
-            torch.float16: torch.complex64,
             torch.double: torch.complex128,
             torch.complex32: torch.complex32,
             torch.complex64: torch.complex64,
@@ -296,9 +295,8 @@ class TestFFT(TestCase):
 
         PROMOTION_MAP_C2R = {
             torch.int8: torch.float,
-            torch.half: torch.half,
+            torch.half: torch.float,
             torch.float: torch.float,
-            torch.float16: torch.float,
             torch.double: torch.double,
             torch.complex32: torch.half,
             torch.complex64: torch.float,
