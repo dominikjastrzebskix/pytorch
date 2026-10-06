@@ -1,5 +1,6 @@
 #include <ATen/ATen.h>
 #include <ATen/EmptyTensor.h>
+#include <ATen/native/Resize.h>
 #include <ATen/core/Dict.h>
 #ifdef USE_RPC
 #include <torch/csrc/distributed/rpc/rref_context.h>
@@ -1006,16 +1007,19 @@ void Unpickler::rebuildTensor(bool quantized) {
           stride[i] >= 0, "Tensor: negative stride ", stride[i], " at dim ", i);
     }
     const size_t itemsize = storage_tensor.dtype().itemsize();
+    const size_t elements_per_byte = at::native::subByteElementPerByte(
+        storage_tensor.dtype());
     const size_t storage_nbytes = storage_tensor.storage().nbytes();
     // Bound storage_offset independently: computeStorageNbytes returns 0 when
     // any dim is 0, so without this check a zero-numel tensor with a huge
     // offset would slip past the combined check and later operations
     // (reshape/resize_) could dereference out-of-bounds memory.
-    size_t offset_nbytes = 0;
+    size_t logical_offset_nbytes = 0;
     TORCH_CHECK(
         !c10::mul_overflows(
-            static_cast<size_t>(storage_offset), itemsize, &offset_nbytes) &&
-            offset_nbytes <= storage_nbytes,
+            static_cast<size_t>(storage_offset),
+            itemsize,
+            &logical_offset_nbytes),
         "Tensor: storage offset ",
         storage_offset,
         " is out of bounds for storage of size ",
@@ -1023,8 +1027,23 @@ void Unpickler::rebuildTensor(bool quantized) {
         " bytes (itemsize ",
         itemsize,
         ")");
-    const size_t required_nbytes = at::detail::computeStorageNbytes(
+    const size_t offset_nbytes =
+        logical_offset_nbytes / elements_per_byte +
+        (logical_offset_nbytes % elements_per_byte != 0);
+    TORCH_CHECK(
+        offset_nbytes <= storage_nbytes,
+        "Tensor: storage offset ",
+        storage_offset,
+        " is out of bounds for storage of size ",
+        storage_nbytes,
+        " bytes (itemsize ",
+        itemsize,
+        ")");
+    const size_t logical_required_nbytes = at::detail::computeStorageNbytes(
         size, stride, itemsize, static_cast<size_t>(storage_offset));
+    const size_t required_nbytes =
+        logical_required_nbytes / elements_per_byte +
+        (logical_required_nbytes % elements_per_byte != 0);
     TORCH_CHECK(
         required_nbytes == 0 || required_nbytes <= storage_nbytes,
         "Tensor: sizes ",
