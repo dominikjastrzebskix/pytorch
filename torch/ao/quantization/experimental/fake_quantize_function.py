@@ -18,7 +18,7 @@ class fake_quantize_function(torch.autograd.Function):
         )
 
         # calculate mask tensor
-        mask = x.detach().apply_(lambda x: (x <= alpha and x >= -alpha))
+        mask = (x.detach() <= alpha) & (x.detach() >= -alpha)
 
         result = dequantize_APoT(quantized_result)
 
@@ -30,6 +30,6 @@ class fake_quantize_function(torch.autograd.Function):
     def backward(  # type: ignore[override]
         ctx: torch.autograd.function.FunctionCtx,
         grad_output: Tensor,
-    ) -> Tensor:
-        mask = ctx.saved_tensors  # type: ignore[attr-defined]
-        return grad_output * mask
+    ) -> tuple[Tensor | None, ...]:
+        (mask,) = ctx.saved_tensors  # type: ignore[attr-defined]
+        return grad_output * mask, None, None, None, None

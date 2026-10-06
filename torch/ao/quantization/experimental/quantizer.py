@@ -43,7 +43,7 @@ class APoTQuantizer:
         result = torch.tensor([])
 
         # map float_to_apot over tensor2quantize elements
-        tensor2quantize = tensor2quantize.detach().apply_(
+        tensor2quantize = tensor2quantize.detach().clone().apply_(
             lambda x: float_to_apot(
                 x, self.quantization_levels, self.level_indices, self.alpha
             )

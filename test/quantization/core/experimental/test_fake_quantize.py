@@ -14,7 +14,6 @@ from torch.testing._internal.common_utils import HardwareClassification
 
 forward_helper = fake_quantize_function.forward
 backward = fake_quantize_function.backward
-from torch.autograd import gradcheck
 
 
 class TestFakeQuantize(unittest.TestCase):
@@ -61,7 +60,7 @@ class TestFakeQuantize(unittest.TestCase):
         apot_fake.enable_observer()
         apot_fake.enable_fake_quant()
 
-        X_reduced_precision_fp = apot_fake.forward(torch.clone(X), False)
+        X_reduced_precision_fp = apot_fake.forward(torch.clone(X))
 
         # get X_expected by converting fp -> apot -> fp to simulate quantize -> dequantize
         X_to_apot = quantize_APoT(X, alpha, gamma, quantization_levels, level_indices)
@@ -83,19 +82,31 @@ class TestFakeQuantize(unittest.TestCase):
         apot_fake.enable_fake_quant()
 
         with self.assertRaises(Exception):
-            apot_fake.forward(torch.clone(X), False)
+            apot_fake.forward(torch.clone(X))
 
     r""" Tests fake quantize helper backward() method
-         using torch.autograd.gradcheck function.
+         using its straight-through clipping mask.
     """
     def test_backward(self):
-        input = torch.randn(20, dtype=torch.double, requires_grad=True)
+        input = torch.tensor(
+            [-0.5, -0.25, 0.0, 0.25, 0.5], dtype=torch.double, requires_grad=True
+        )
+        input_before = input.detach().clone()
 
         observer = APoTObserver(b=4, k=2)
         observer(input)
         alpha, gamma, quantization_levels, level_indices = observer.calculate_qparams(signed=False)
 
-        gradcheck(fake_quantize_function.apply, (input, alpha, gamma, quantization_levels, level_indices), atol=1e-4)
+        output = fake_quantize_function.apply(
+            input, alpha, gamma, quantization_levels, level_indices
+        )
+        torch.testing.assert_close(input.detach(), input_before)
+
+        output.sum().backward()
+        expected_grad = ((input_before >= -alpha) & (input_before <= alpha)).to(
+            input.dtype
+        )
+        torch.testing.assert_close(input.grad, expected_grad)
 
 if __name__ == '__main__':
     unittest.main()
