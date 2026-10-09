@@ -2829,7 +2829,7 @@ void _fake_quant_per_channel_cachemask_cpu_helper(
       // write mask
       cpu_kernel(iter_mask, [=](SelfType self, float scale, int32_t zero_point) -> bool {
         float inv_scale = 1.0f / scale;
-        const auto qval = static_cast<int64_t>(zero_point + std::nearbyint(self * inv_scale));
+        const auto qval = zero_point + std::nearbyint(self * inv_scale);
         return ((quant_min <= qval) && (qval <= quant_max));
       });
 
@@ -2839,8 +2839,7 @@ void _fake_quant_per_channel_cachemask_cpu_helper(
         // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
         return (std::fmin(
                     std::fmax(
-                        static_cast<int64_t>(
-                            zero_point + std::nearbyint(self * inv_scale)),
+                        zero_point + std::nearbyint(self * inv_scale),
                         quant_min),
                     quant_max) -
                 zero_point) *

@@ -1439,9 +1439,7 @@ class TestQuantizedOps(TestCase):
                                        zero_point_C)
 
 
-    """Tests the correctness of the quantized softmax op."""
-    @given(dims=st.lists(st.integers(2, 5), min_size=5, max_size=5))
-    def test_qsoftmax(self, dims):
+    def _test_qsoftmax_impl(self, dims):
         for (num_dims, dim, memory_format) in [
             (2, 1, torch.contiguous_format),  # 2d softmax over last dim
             (4, 3, torch.contiguous_format),  # >2 dims, softmax along last dim
@@ -1479,11 +1477,17 @@ class TestQuantizedOps(TestCase):
             np.testing.assert_equal(qY, qY_hat.int_repr(),
                                     "Quantized softmax failed.")
 
+    """Tests the correctness of the quantized softmax op."""
+    @given(dims=st.lists(st.integers(2, 5), min_size=5, max_size=5))
+    def test_qsoftmax(self, dims):
+        self._test_qsoftmax_impl(dims)
+
     """Tests the correctness of the quantized softmax op using qnnpack."""
     @skipIfNoQNNPACK
-    def test_qsoftmax_qnnpack(self):
+    @given(dims=st.lists(st.integers(2, 5), min_size=5, max_size=5))
+    def test_qsoftmax_qnnpack(self, dims):
         with override_quantized_engine('qnnpack'):
-            self.test_qsoftmax()
+            self._test_qsoftmax_impl(dims)
 
     """Tests the correctness of the mul and mul_relu op."""
     def test_qmul_broadcast(self):
@@ -8926,7 +8930,10 @@ class TestQuantizedConv(TestCase):
         if fp32_output or bfloat16_output:
             self.assertTrue(result.dtype == qconv_output_dtype)
 
-        self.assertEqual(result.float(), result_ref.float(), atol=1e-6, rtol=1e-5)
+        # bfloat16 only has ~8 bits of mantissa, so a 1-ULP rounding difference
+        # (e.g. 0.00390625 near magnitude 0.73) is expected, not a correctness bug.
+        atol, rtol = (1e-2, 1.6e-2) if bfloat16_output else (1e-6, 1e-5)
+        self.assertEqual(result.float(), result_ref.float(), atol=atol, rtol=rtol)
         if torch.isnan(result).any():
             raise AssertionError("Output result contains NaN values")
 

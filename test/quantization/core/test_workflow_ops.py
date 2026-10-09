@@ -853,6 +853,14 @@ class TestFakeQuantizeOps(TestCase):
         self._test_learnable_forward_per_channel(
             X_base, 'cpu', scale_base, zero_point_base, axis)
 
+    def test_learnable_forward_per_channel_cpu_large_input(self):
+        X = torch.tensor([[-1e15], [1e15]])
+        scale = torch.tensor([1e-4])
+        zero_point = torch.tensor([0.0])
+        result = torch._fake_quantize_learnable_per_channel_affine(
+            X, scale, zero_point, 1, 0, 255)
+        self.assertEqual(result, torch.tensor([[0.0], [255e-4]]))
+
     @unittest.skipIf(not TEST_CUDA, "No gpu is not available.")
     def test_learnable_forward_per_channel_cuda(self):
         torch.random.manual_seed(NP_RANDOM_SEED)

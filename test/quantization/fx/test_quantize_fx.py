@@ -6047,6 +6047,10 @@ class TestQuantizeFx(QuantizationTestCase):
         """
         if "qnnpack" not in supported_qengines:
             return
+        # the symmetric qnnpack qconfig quantizes activations to qint8, which the
+        # legacy QNNPACK kernel only accepts via its XNNPACK fallback path
+        if not torch.backends.xnnpack.enabled:
+            return
 
         class MyModel(torch.nn.Module):
             def __init__(self) -> None:
@@ -6077,6 +6081,10 @@ class TestQuantizeFx(QuantizationTestCase):
         works with the QNNPACK BackendConfig.
         """
         if "qnnpack" not in supported_qengines:
+            return
+        # the symmetric qnnpack qconfig quantizes activations to qint8, which the
+        # legacy QNNPACK kernel only accepts via its XNNPACK fallback path
+        if not torch.backends.xnnpack.enabled:
             return
 
         class MyModel(torch.nn.Module):
