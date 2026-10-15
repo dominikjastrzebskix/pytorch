@@ -8932,7 +8932,7 @@ class TestQuantizedConv(TestCase):
 
         # bfloat16 only has ~8 bits of mantissa, so a 1-ULP rounding difference
         # (e.g. 0.00390625 near magnitude 0.73) is expected, not a correctness bug.
-        atol, rtol = (1e-2, 1.6e-2) if bfloat16_output else (1e-6, 1e-5)
+        atol, rtol = (1e-4, 8e-3) if bfloat16_output else (1e-6, 1e-5)
         self.assertEqual(result.float(), result_ref.float(), atol=atol, rtol=rtol)
         if torch.isnan(result).any():
             raise AssertionError("Output result contains NaN values")

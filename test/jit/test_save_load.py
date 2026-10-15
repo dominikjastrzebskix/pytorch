@@ -517,6 +517,28 @@ class TestSaveLoad(JitTestCase):
             self.assertEqual(m_name, loaded_name)
             self.assertEqual(m_buffer, loaded_buffer)
 
+    def test_save_load_sub_byte_quantized_buffer(self):
+        class Module(torch.nn.Module):
+            def __init__(self) -> None:
+                super().__init__()
+                values = torch.arange(15, dtype=torch.float32)
+                self.register_buffer(
+                    "quantized",
+                    torch.quantize_per_tensor(values, 0.1, 0, torch.quint4x2),
+                )
+
+            def forward(self, x):
+                return x
+
+        module = torch.jit.script(Module())
+        archive = io.BytesIO()
+        torch.jit.save(module, archive)
+        archive.seek(0)
+        loaded_module = torch.jit.load(archive)
+
+        self.assertEqual(loaded_module.quantized.dtype, torch.quint4x2)
+        self.assertEqual(loaded_module.quantized, module.quantized)
+
     def test_save_load_meta_tensors(self):
         """
         Check that parameters, buffers, and submodules are the same after loading
